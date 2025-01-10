@@ -260,7 +260,7 @@ int main(int argc, char* argv[])
 				printf("Program counter reached the end of the ROM.\n");
 				goto err_close;
 			}
-			printf("doing op %02X%02X pc %i\n", memory[pc], memory[pc + 1], pc);
+			//printf("doing op %02X%02X pc %i\n", memory[pc], memory[pc + 1], pc); this was a debug line
 			do_op((memory[pc] << 8) + memory[pc + 1]);
 			pc += 2;
 
