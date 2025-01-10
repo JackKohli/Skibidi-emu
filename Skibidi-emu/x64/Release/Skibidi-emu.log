@@ -1,0 +1,5 @@
+﻿  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 50 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  Skibidi-emu.vcxproj -> C:\Users\Jack\source\repos\Skibidi-emu\x64\Release\Skibidi-emu.exe
