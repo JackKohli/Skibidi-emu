@@ -148,7 +148,49 @@ You may then ask, why does Chip-8 flicker? The answer is actually how it handles
 
 #### A Quick Aside About Security
 
-Although I do not have an exact mechanism, it is conceivable that one could compromise a computer using a maliciously constructed rom without controls on the program counter. In my implementation, the 16-bit pc is used to index into the 4kb memory array, which is a potential vector for an attack. I do have a control on it, so that the pc can only index into memory if it passes a check that it is not greater than 4094 (the last 2 byte chunk of memory). An implementation that does not have this control could theoretically write to or read from the 60kb of memory after the end of the memory array allocated for the interpreter. You would be able to do this by taking advantage of the 0xFX1E instruction, add the values of I and V[X] and store the result in I. One execution of this instruction would allow you to access up to address 0x10FE and you can write or read up to 16 contiguous bytes using either 0xFX55 or 0xFX65 respectively, these instructions either store registers V[0] through V[X] in memory starting at I or they read bytes from memory starting at I and store them in V[0] through V[X]. I do not have a clear idea of how this would be used exactly, but it would be something along the lines of finding a function in memory that can be called with an op code that is within 60kb of the end of the memory array and injecting malicious instructions encoded as bytes into it that can then be executed when the function is called.
+Although I do not have an exact mechanism, it is conceivable that one could compromise a computer using a maliciously constructed rom. One could theoretically write to or read from the 60kb of memory after the end of the memory array allocated for the interpreter. You would be able to do this by taking advantage of the 0xFX1E instruction, add the values of I and V[X] and store the result in I. One execution of this instruction would allow you to access up to address &memory + 0x10FE and you can write or read up to 16 contiguous bytes using either 0xFX55 or 0xFX65 respectively, these instructions either store registers V[0] through V[X] in memory starting at I or they read bytes from memory starting at I and store them in V[0] through V[X]. I do not have a clear idea of how this would be used exactly, but it would be something along the lines of finding a function in memory that can be called with an op code that is within 60kb of the end of the memory array and injecting malicious instructions encoded as bytes into it that can then be executed when the function is called. A simple way to avoid this would be along the lines of:
+
+    do_op(op);
+    if(I > 4080) I = 4080;
+
+which ensures that the above exploit cannot access out of range of memory by the method I described alternatively, you could add a similar control on instructions that change the value of I. It does introduce a problem, which is it actually constrains the available space for writing the rom, typically the end of the rom contains sprite data (although it doesn't have to), which would mean that the last sprite stored can be at memory[4080] and it can only be up to 15 bytes. A regular code block of instructions, however, could still go up to the end of memory, with the last instruction starting at memory[4094]. I have not implemented the above fix as I plan to demonstrate, with slightly modified source code for illustration purposes, the exploit.\
+#### Implementing the Exploit
+I'm going to wrecklessly write to the bytes immediately after the end of the memory array. So to keep track of this, I've added a pointer to the address of the second byte (for some reason the byte after the end did not work correctly, the compliler may append the array with a const char '\0') after the end of the memory array
+
+    char* str = &memory[0x1001];
+
+The type is a small clue, but this is only a small demonstartion. I then wrote a small rom:
+
+    AFFF //I = 0xFFF
+    6002 //V[0] = 0x01
+    F01E //I += V[0]
+    6048 //V[0] = 0x48
+    6165 //V[1] = 0x65
+    626C //...
+    636C
+    646F
+    652C
+    6620
+    6748
+    6861
+    6963
+    6A6B
+    6B65
+    6C72 //...
+    6D00 //V[0xD] = 0x00
+    FD55 //load V[0] through V[0xD] into memory starting at I
+    6000 //V[0] = 0  
+    1224 //jump to address 0x224 (loop indefinitely)
+
+and after the window is closed, one more line of code was added:
+
+    printf("Starting at memory[%i] - %s\n", str - &memory, str);
+
+which prints the following string to the terminal:
+
+    Starting at memory[4097] - Hello, Hacker
+
+here we have successfully 
 
 #### Conclusion
 I spent way too much time writing this already, so I'll keep it short.\
