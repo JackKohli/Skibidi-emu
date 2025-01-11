@@ -31,7 +31,7 @@ Mix_Chunk* beep = NULL;
 SDL_Event e;
 
 //memory
-uint8_t memory[0x1000] = { 0 };
+uint8_t memory[0x100F] = { 0 };
 
 //cpu
 uint8_t V[0x10] = { 0 };
@@ -420,6 +420,7 @@ void SNEVXVY(uint16_t op) {
 
 void LDI(uint16_t op) {
 	I = op & 0x0FFF;
+	if (I > 0xFFF) I = 0xFFF;
 }
 
 void JPV0(uint16_t op) {
@@ -495,6 +496,7 @@ void LDSTVX(uint16_t op) {
 
 void ADDIVX(uint16_t op) {
 	I += V[(op & 0x0F00) >> 8];
+	if (I > 0xFFF) I = 0xFFF;
 }
 
 //bitwise and with F to map to one of the 16 hex sprites loaded from 0 to 79
@@ -654,6 +656,7 @@ bool load_rom(char* path, char* type) {
 		printf("file could not be either found or opened.\n");
 		return false;
 	}
+
 	while (fread(memory + addr, 1, 1, rom)) {
 		addr++;
 	}

@@ -1,15 +1,15 @@
 # skibidi-emu
 #### Video Demo:  <URL HERE>
-#### Description: Chip-8 interpreter written in C using SDL2 as an abstraction layer for IO.
+#### Description: Chip-8 interpreter written in C using SDL2 as an abstraction layer for IO. Name was a joke to start with and I never bothered changing it.
 #### USAGE: From command line run {path to compiled skibidi-emu} {rom path} {rom type}
 
 Note: roms must be Chip-8 compatible. rom type will usually be normal, but roms designed for the ETI 660 computer will not work unless rom type is "ETI"
 
-#### The Source
+## The Source
 The basis of this chip-8 interpreter is a well known document (at least as far as Chip-8 is concerned) - "Cowgod's Chip-8 Technical Reference v1.0" currently available at http://devernay.free.fr/hacks/chip8/C8TECH10.HTM \
 This document describes the technical requirements to run a Chip-8 program.
-#### The Spec
-Chip-8 computers have 4096 bytes of memory where program data is stored, 16 1-byte registers (denoted Vx where x is the index of the register), a 2-byte register called I, a 1-byte each sound timer and delay timer register that decrement at 60Hz, the 2-byte (as it has to be able to index 0 to 4095) program counter, the stack which consists of 16 2-byte values to store addresses, and the stack pointer that keeps track of the index of the top of the stack.\
+## The Spec
+Chip-8 computers have 4096 (for reasons you'll see later we allocate 4111) bytes of memory where program data is stored, 16 1-byte registers (denoted Vx where x is the index of the register), a 2-byte register called I, a 1-byte each sound timer and delay timer register that decrement at 60Hz, the 2-byte (as it has to be able to index 0 to 4095) program counter, the stack which consists of 16 2-byte values to store addresses, and the stack pointer that keeps track of the index of the top of the stack.\
 Typically, there would be 16 keys for input, which I have mapped to keys on a modern computer (qwerty) keyboard as shown below.
 #### KEYMAP:
     KEYBOARD        =       INPUT
@@ -21,7 +21,7 @@ Chip-8 computers had a 64x32 monochrome display, and builtin capability to displ
 \
 With these details in mind, I set to writing an interpreter with the consideration of memory and processing limitations of Chip-8 computers.
 In an effort to maintain some level of portability and to reduce memory usage where possible, there were no standard C ints involved with the CPU portion of the code (except perhaps some introduced by SDL which was required for the Fx0A instruction which required a key input), instead using more the portable uint8_t or uint16_t. In an effort to reduce memory usage, wherever possible no new variables were declared, instead opting to loop based on the copy of operation codes (op codes) that is passed when calling a function with the op code as an argument. Finally, I resolved to wherever possible not use division or modulo operators as they are considered quite costly compared to integer addition, multiplication and subtraction.\
-#### Operations
+## Operations
 There are 34 different instructions based on op code in my implementation, these op codes are provided in their hexidecimal representation, consisting of 2 bytes (4 nibbles) - 0xNNNN. The highest half-byte generally determines the type of instruction, for example 0xDXXX defines draw instruction with the other 3 half-bytes existing as arguments to the instruction that need to be decoded. 
 I will now walk through some code examples.\
 Starting off easy, the logic of the loop that executes instructions:
@@ -73,7 +73,7 @@ This is the add with carry instruction. the op code for this instruction takes t
 	    	V[0xF] = 0;
 	    }
     }
-Visual studio does yell at you for this and it would appear that C casts uint8_t to a 4 byte type for the purposes of logical operations given the error it gave me. I refrained from changing it in my source on the off chance it does actually break something, although I'm quite confident it won't. I was curious so I investigated and decided to write a brief appendix for this question (see appendix 1).
+Visual studio does yell at you for this and it would appear that C casts uint8_t to a 4 byte type for the purposes of logical operations given the warning it gave me. I refrained from changing it in my source on the off chance it does actually break something, although I'm quite confident it won't. I was curious so I investigated and decided to write a brief appendix for this question (see appendix 1).
 Next and Finally, we will take a brief look at my implementation of the DRW instruction
 
     void DRW(uint16_t op) {
@@ -142,18 +142,32 @@ While the lowest half-byte of the op code copy that got passed to the function i
 
 above is a very simplified version of the loops within the main() function with most of the logic substituted for pseudocode. To set a framerate (which can be altered at the top of the source, but I believe is supposed to be 60 frames/s) two timespec structs are defined, called frame_start and frame_end. A bool to break the loop called quit is defined as false, but will be set to true in the case that an event from the queue that we poll causes the window to close. We enter into the actual loop that prevents us from falling out of the bottom, destroying the window and returning from main. the start of every iteration of the while(quit==false) loop that defines a frame, we record the start time and decrement both of the timer registers if necessary. The next important thing that happens is entry into another loop that runs until 1/60th of a second has passed. in this loop, the SDL event queue is polled once, which handles keyboard input, used to interact with Chip-8 programs and detects events that cause the window to quit. Then one operation is done with do_op(). If the previous instruction wasn't a draw instruction frame_end is assigned the current time and the end of one iteration of the while (end-start < 1/60) loop has ended. If the last instruction executed was a draw instruction (updated the display), we loop, repeatedly getting the current time and assigning it to frame_end, checking if it has been 1/60th of a second yet and if it has, we convert the data in display into a series of pixels that is then drawn to the screen. Then the timer loop breaks, going back out to the while (quit==false) loop's scope, the end of the loop iteration is reached and the loop begins again, which comprises one frame.\
 
-#### Flickering Display
+## Flickering Display
 As a quick note: if one runs a program with the Chip-8 interpreter, flickering will be seen and this is actually not a bug per se. I made the decision to draw a new frame after every draw instruction, this is because if not then, how would you know when? Perhaps a counter and after some arbitrary number of instructions have been executed, you render the data condained in display to the screen, but this would likely lead to variable program speeds and still does not solve the problem of flickering.
-You may then ask, why does Chip-8 flicker? The answer is actually how it handles display by design. Say, for example, you were running pong. How do you update the position of one of the paddles if you move it up one pixel? A simple answer may be simply decrement (generally negative is upwards or leftwards) the register that has the y coordinate of the paddle and draw it again, but the spec for the draw instruction calls for a sprite to be XORed onto the existing display, you may wonder what this means for our paddle? What it means is that rather than moving the paddle up by 1 pixel, you have XORed the paddle with another paddle sprite 1 pixel higher, resulting in 1 pixel on at the top of the paddle and the bottom pixel of the paddle's previous location also being on, with the remainder off. The truth is that you must first draw the paddle where it currently is to erase it from the screen, then decrement it's Y coordinate, then you can draw it to the screen once again and this disappearance causes the flicker, unavoidably. Even if one were to execute the relatively (although not in modern computer terms) expensive CLS instruction to clear the screen, sure you could immediately draw that one paddle correctly without a draw to erase it, but you'd erase the ball and the other paddle and the scores, which would also need to be redrawn.
+You may then ask, why does Chip-8 flicker? The answer is actually how it handles display by design. Say, for example, you were running pong. How do you update the position of one of the paddles if you move it up one pixel? A simple answer may be simply decrement (generally negative is upwards or leftwards) the register that has the y coordinate of the paddle and draw it again, but the spec for the draw instruction calls for a sprite to be XORed onto the existing display, you may wonder what this means for our paddle? What it means is that rather than moving the paddle up by 1 pixel, you have XORed the paddle with another paddle sprite 1 pixel higher, resulting in 1 pixel on at the top of the paddle and the bottom pixel of the paddle's previous location also being on, with the remainder off. The truth is that you must first draw the paddle where it currently is to erase it from the screen, then decrement it's Y coordinate, then you can draw it to the screen once again and this disappearance causes the flicker, unavoidably. Even if one were to execute the relatively (although not in modern computer terms) expensive CLS instruction to clear the screen, sure you could immediately draw that one paddle correctly without a draw to erase it, but you'd erase the ball and the other paddle and the scores, which would also need to be redrawn.\
+#### A Possible Fix?
+As a quick addendum after the fact, it may be possible to disable the flickering for some Chip-8 programs (as with the rest of this essay, I'm thinking pong) outside of the Chip-8 logic by recording the previous state of display, say display_old and bitwise ORing with the current state, if the draw instruction deletes a sprite from the screen (like in paddle movement in pong) i.e. in display it is absent but it still exists in display_old so ORing them together will still display the sprite, however as the next draw instruction executes, display_old will now have the sprite absent and display will have the sprite in it's updated position - ORing these will display the sprite in the updated position only, thereby eliminating the flicker. Importantly, there are some theoretical programs where this flicker fix will break the program. Say, for example someone created an animated sprite, where the next frame is actually dependent on the XOR behaviour. If you were to OR the display and display_old, you would end up with 2 frames displayed simultaneously, ruining the animation.
 
-#### A Quick Aside About Security
+## A Quick Aside About Security
 
 Although I do not have an exact mechanism, it is conceivable that one could compromise a computer using a maliciously constructed rom. One could theoretically write to or read from the 60kb of memory after the end of the memory array allocated for the interpreter. You would be able to do this by taking advantage of the 0xFX1E instruction, add the values of I and V[X] and store the result in I. One execution of this instruction would allow you to access up to address &memory + 0x10FE and you can write or read up to 16 contiguous bytes using either 0xFX55 or 0xFX65 respectively, these instructions either store registers V[0] through V[X] in memory starting at I or they read bytes from memory starting at I and store them in V[0] through V[X]. I do not have a clear idea of how this would be used exactly, but it would be something along the lines of finding a function in memory that can be called with an op code that is within 60kb of the end of the memory array and injecting malicious instructions encoded as bytes into it that can then be executed when the function is called. A simple way to avoid this would be along the lines of:
 
     do_op(op);
     if(I > 4080) I = 4080;
 
-which ensures that the above exploit cannot access out of range of memory by the method I described alternatively, you could add a similar control on instructions that change the value of I. It does introduce a problem, which is it actually constrains the available space for writing the rom, typically the end of the rom contains sprite data (although it doesn't have to), which would mean that the last sprite stored can be at memory[4080] and it can only be up to 15 bytes. A regular code block of instructions, however, could still go up to the end of memory, with the last instruction starting at memory[4094]. I have not implemented the above fix as I plan to demonstrate, with slightly modified source code for illustration purposes, the exploit.\
+which ensures that the above exploit cannot access out of range of memory by the method I described alternatively, you could add a similar control on instructions that change the value of I. It does introduce a problem, which is it actually constrains the available space for writing the rom, typically the end of the rom contains sprite data (although it doesn't have to), which would mean that the last sprite stored can be at memory[4080] and it can only be up to 15 bytes. A regular code block of instructions, however, could still go up to the end of memory, with the last instruction starting at memory[4094].\
+Another alternative to the above is to allocate 15 extra bytes of memory:
+
+    uint8_t memory[0x100F];
+
+    ...
+    
+    do_op(op);
+    if (I > 4095) I = 4095;
+
+here, although extra memory is used with the allocation of 15 extra bytes, any attempt to escape memory through these means is thwarted 
+
+ I have implemented the above fix, however I demonstrate below, with slightly modified source code for illustration purposes, the exploit.\
 #### Implementing the Exploit
 I'm going to wrecklessly write to the bytes immediately after the end of the memory array. So to keep track of this, I've added a pointer to the address of the second byte (for some reason the byte after the end did not work correctly, the compliler may append the array with a const char '\0') after the end of the memory array
 
@@ -188,24 +202,24 @@ and after the window is closed, one more line of code was added:
 
 which prints the following string to the terminal:
 
-    Starting at memory[4097] - Hello, Hacker
+    "Starting at memory[4097] - Hello, Hacker"
 
-here we have successfully 
+here we have successfully written to an address outside of what should be allowed by a Chip-8 interpreter. Obviously a Chip-8 computer does not have this vulnerability as there was only 4kb and so attempting to access beyond the end of memory would, I assume, simply overflow and loop back around and so it is not a design flaw with Chip-8 computers as they were intended, but a consequence of interpreting Chip-8 on a system with much more available memory. 
 
-#### Conclusion
+## Conclusion
 I spent way too much time writing this already, so I'll keep it short.\
-This was a really interesting project that allowed me to delve into constrained operating conditions and some lower level C. I'm really proud of some of the optimisations that I made, particularly the trie-like function pointer array for do_op(), which I thought was a creative solution to get around a 34 part if else statement. I'm really happy that I was able to get Pong to run on my computer, having produced over 1000 lines of code to get a 246 byte rom to play correctly. It did help me to appreciate just how complex graphics and, to a greter extent, sound (at least on the surface, I suspect there may be an inversion with greater depth) are. This was also a great opportunity for me to write some tests, which I hadn't had a need for in the past, but they were a great help in debugging. I hope you enjoyed this read if you made it this far (see below for more reading).
+This was a really interesting project that allowed me to delve into constrained operating conditions and some lower level C. I'm really proud of some of the optimisations that I made, particularly the trie-like function pointer array for do_op(), which I thought was a creative solution to get around a 34 branch if else statement. I'm really happy that I was able to get Pong to run on my computer, having produced over 1000 lines of code to get a 246 byte rom to play correctly. All joking aside, the other Chip-8 roms I tested also functioned correctly as far as I could tell. It did help me to appreciate just how complex graphics and, to a greter extent, sound (at least on the surface, I suspect there may be an inversion with greater depth) are. This was also a great opportunity for me to write some tests, which I hadn't had a need for in the past, but they were a great help in debugging. I hope you enjoyed reading if you made it this far (see below for more reading).
 
-#### Appendix 1
+## Appendix 1
 There is a online compiler explorer tool called Godbolt. It's not just a cool name, the guy who started the website (godbolt.org) is actually called Matt Godbolt, incredible surname.
-I decided to investigate the ADDCARRY instruction as it compiles with GCC 14.2.
+I decided to investigate the ADDCARRY function as it compiles with GCC 14.2.
 I produced some test functions:
 
     #include<stdint.h>
     uint8_t x[] = {255, 255};
     uint8_t z;
     void addcarry1(){
-        uint16_t op = 0x0010;
+        uint16_t op = 0x0010; //I didn't have an op code to pass so i made one up
         x[op>>8] += x [op>>4];
         if (x[op>>8] < x[op>>4]) z = 1;
         else z=0;
