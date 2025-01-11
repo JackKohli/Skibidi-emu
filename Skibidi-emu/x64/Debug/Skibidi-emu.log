@@ -1,2 +1,8 @@
 ﻿  Source.c
+C:\Users\Jack\source\repos\Skibidi-emu\Skibidi-emu\Source.c(287,55): warning C4047: '-': 'uint8_t *' differs in levels of indirection from 'uint8_t (*)[4096]'
+C:\Users\Jack\source\repos\Skibidi-emu\Skibidi-emu\Source.c(287,9): warning C4477: 'printf' : format string '%i' requires an argument of type 'int', but variadic argument 1 has type '__int64'
+C:\Users\Jack\source\repos\Skibidi-emu\Skibidi-emu\Source.c(287,9): message : consider using '%lli' in the format string
+C:\Users\Jack\source\repos\Skibidi-emu\Skibidi-emu\Source.c(287,9): message : consider using '%Ii' in the format string
+C:\Users\Jack\source\repos\Skibidi-emu\Skibidi-emu\Source.c(287,9): message : consider using '%I64i' in the format string
+  LINK : C:\Users\Jack\source\repos\Skibidi-emu\x64\Debug\Skibidi-emu.exe not found or not built by the last incremental link; performing full link
   Skibidi-emu.vcxproj -> C:\Users\Jack\source\repos\Skibidi-emu\x64\Debug\Skibidi-emu.exe

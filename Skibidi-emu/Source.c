@@ -32,6 +32,7 @@ SDL_Event e;
 
 //memory
 uint8_t memory[0x1000] = { 0 };
+uint8_t* str = &memory[0x1001];
 
 //cpu
 uint8_t V[0x10] = { 0 };
@@ -195,7 +196,7 @@ int main(int argc, char* argv[])
 	close();
 	return 0;
 #else
-
+	/*
 	if (argc < 3) {
 		printf("Error: usage is 'skibidi-emu [path] [normal/ETI]' \n");
 		return 1;
@@ -208,12 +209,12 @@ int main(int argc, char* argv[])
 			argv[2][i] = toupper(argv[2][i]);
 		}
 	}
-	
+	*/
 	if (!init()) {
 		return 1;
 	}
 	printf("initialization successful.\n");
-	if (!load_rom(argv[1], argv[2])) {
+	if (!load_rom("roms/hello.ch8", "normal")) {
 		printf("Could not load ROM at '%s'. Check path.\n", argv[1]);
 		goto err_close;
 	}
@@ -283,6 +284,7 @@ int main(int argc, char* argv[])
 		}
 	}
 	close();
+	printf("Starting at memory[%i] - %s\n", str - &memory, str);
 	return 0;
 err_close:
 	close();
