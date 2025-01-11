@@ -295,8 +295,8 @@ err_close:
 }
 
 void CLS() {
-	for (int i = 0; i < 8; i++) {
-		for (int j = 0; j < 32; j++) {
+	for (uint8_t i = 0; i < 8; i++) {
+		for (uint8_t j = 0; j < 32; j++) {
 			display[i][j] = 0x00;
 		}
 	}
@@ -361,7 +361,7 @@ void XOR(uint16_t op) {
 
 void ADDCARRY(uint16_t op) {
 	V[(op & 0x0F00) >> 8] += V[(op & 0x00F0) >> 4];
-	if (V[(op & 0x0F00) >> 8] < V[(op & 0x00F0) >> 4]) {
+	if (V[(op & 0x0F00) >> 8] += V[(op & 0x00F0) >> 4] < V[(op & 0x00F0) >> 4]) {
 		V[0xF] = 0x01;
 	}
 	else {
@@ -475,7 +475,7 @@ void LDVXK(uint16_t op) {
 	while (e.type != SDL_QUIT) {
 		SDL_PollEvent(&e);
 		if (e.type == SDL_KEYDOWN) {
-			for (int i = 0; i < 0x10; i++) {
+			for (uint8_t i = 0; i < 0x10; i++) {
 				if (keys[i] == e.key.keysym.sym) {
 					V[(op & 0x0F00) >> 8] = i;
 					return;
@@ -658,9 +658,10 @@ bool load_rom(char* path, char* type) {
 		addr++;
 	}
 	printf("rom at %s loaded.\n", path);
-	for (int i = pc; i < 0x1000; i += 2) {
+	/*for (int i = pc; i < 0x1000; i += 2) {
 		printf("%i %i%i\n", i, memory[i], memory[i + 1]);
 	}
+	*/
 	fclose(rom);
 	return true;
 }
