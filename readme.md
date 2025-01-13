@@ -5,6 +5,8 @@
 
 Note: roms must be Chip-8 compatible. rom type will usually be normal, but roms designed for the ETI 660 computer will not work unless rom type is "ETI"
 
+source code path: ./Skibidi-emu/source.c
+
 ## The Source
 The basis of this chip-8 interpreter is a well known document (at least as far as Chip-8 is concerned) - "Cowgod's Chip-8 Technical Reference v1.0" currently available at http://devernay.free.fr/hacks/chip8/C8TECH10.HTM \
 This document describes the technical requirements to run a Chip-8 program.
