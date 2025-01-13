@@ -1,5 +1,5 @@
 # skibidi-emu
-#### Video Demo:  <URL HERE>
+#### Video Demo:  https://www.youtube.com/watch?v=Y7wkk3224q8
 #### Description: Chip-8 interpreter written in C using SDL2 as an abstraction layer for IO. Name was a joke to start with and I never bothered changing it.
 #### USAGE: From command line run {path to compiled skibidi-emu} {rom path} {rom type}
 
